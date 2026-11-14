@@ -128,5 +128,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/coupons', [CouponController::class, 'store']);
         Route::put('/coupons/{id}', [CouponController::class, 'update']);
         Route::delete('/coupons/{id}', [CouponController::class, 'destroy']);
+
+        // Upload hình ảnh
+        Route::post('/upload', [UploadController::class, 'uploadImage']);
     });
 });
