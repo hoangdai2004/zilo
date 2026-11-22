@@ -42,11 +42,11 @@ class ProductController extends Controller
         }
 
         // Lọc theo từ khóa tìm kiếm (tên hoặc mô tả)
-        if ($request->filled('keyword')) {
-            $keyword = $request->string('keyword');
-            $query->where(function ($q) use ($keyword) {
-                $q->where('name', 'like', "%{$keyword}%")
-                  ->orWhere('description', 'like', "%{$keyword}%");
+        $search = $request->input('search') ?? $request->input('keyword');
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
             });
         }
 
@@ -71,12 +71,18 @@ class ProductController extends Controller
         // Sắp xếp (mặc định sản phẩm mới nhất)
         switch ($request->query('sort')) {
             case 'price_asc':
+            case 'price-asc':
                 $query->orderBy('price', 'asc');
                 break;
             case 'price_desc':
+            case 'price-desc':
                 $query->orderBy('price', 'desc');
                 break;
+            case 'rating':
+                $query->orderByDesc('average_rating');
+                break;
             case 'name_asc':
+            case 'name-asc':
                 $query->orderBy('name', 'asc');
                 break;
             default:

@@ -149,7 +149,7 @@ class OrderController extends Controller
             'shipping_name' => 'required|string|max:255',
             'shipping_phone' => 'required|string|max:20',
             'shipping_address' => 'required|string',
-            'payment_method' => 'required|in:cod',
+            'payment_method' => 'required|in:cod,vnpay,momo',
             'coupon_code' => 'nullable|string|max:50',
             'notes' => 'nullable|string|max:1000',
             'items' => 'sometimes|array|min:1',

@@ -44,35 +44,31 @@ class ReviewController extends Controller
         ]);
 
         $review = DB::transaction(function () use ($validated, $product, $user) {
-            $orderItems = OrderItem::where('product_id', $product->id)
+            // Kiểm tra xem người dùng đã đánh giá sản phẩm này chưa
+            $existingReview = Review::where('product_id', $product->id)
+                ->where('user_id', $user->id)
+                ->first();
+
+            if ($existingReview) {
+                throw ValidationException::withMessages([
+                    'comment' => ['Bạn đã gửi đánh giá cho sản phẩm này rồi.'],
+                ]);
+            }
+
+            // Tìm đơn hàng đã giao (delivered) để xác thực người mua hàng thật
+            $orderItem = OrderItem::where('product_id', $product->id)
                 ->whereHas('order', fn ($orders) => $orders
                     ->where('user_id', $user->id)
-                    ->where('status', 'delivered'));
-
-            if (!empty($validated['order_item_id'])) {
-                $orderItems->whereKey($validated['order_item_id']);
-            }
-
-            $orderItem = $orderItems->lockForUpdate()->first();
-            if (!$orderItem) {
-                throw ValidationException::withMessages([
-                    'order_item_id' => ['Bạn chỉ có thể đánh giá sản phẩm trong đơn hàng đã giao.'],
-                ]);
-            }
-
-            if (Review::where('order_item_id', $orderItem->id)->exists()) {
-                throw ValidationException::withMessages([
-                    'order_item_id' => ['Sản phẩm trong đơn hàng này đã được đánh giá.'],
-                ]);
-            }
+                    ->where('status', 'delivered'))
+                ->first();
 
             return Review::create([
-                'user_id' => $user->id,
-                'product_id' => $product->id,
-                'order_item_id' => $orderItem->id,
-                'rating' => $validated['rating'],
-                'comment' => $validated['comment'] ?? null,
-                'is_approved' => true,
+                'user_id'       => $user->id,
+                'product_id'    => $product->id,
+                'order_item_id' => $orderItem?->id,
+                'rating'        => $validated['rating'],
+                'comment'       => $validated['comment'] ?? null,
+                'is_approved'   => true,
             ]);
         });
 
