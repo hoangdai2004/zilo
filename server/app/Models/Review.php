@@ -15,6 +15,7 @@ class Review extends Model
         'order_item_id',
         'rating',
         'comment',
+        'images',
         'is_approved',
     ];
 
@@ -23,6 +24,7 @@ class Review extends Model
         return [
             'rating' => 'integer',
             'is_approved' => 'boolean',
+            'images' => 'array',
         ];
     }
 

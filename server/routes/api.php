@@ -3,11 +3,13 @@
 use App\Http\Controllers\Api\AddressController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BannerController;
 use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CouponController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\WishlistController;
@@ -35,6 +37,7 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middle
 // =========================================================================
 // 2. DANH MỤC & THƯƠNG HIỆU - PUBLIC
 // =========================================================================
+Route::get('/banners', [BannerController::class, 'index']);
 Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/categories/{id}', [CategoryController::class, 'show']);
 
@@ -53,6 +56,11 @@ Route::get('/products/{productId}/reviews', [ReviewController::class, 'index']);
 // =========================================================================
 Route::get('/coupons', [CouponController::class, 'index']);
 Route::post('/coupons/check', [CouponController::class, 'check']);
+
+// =========================================================================
+// 4.1 THANH TOÁN (PAYMENT) CALLBACK - PUBLIC
+// =========================================================================
+Route::get('/payment/vnpay-return', [PaymentController::class, 'vnpayReturn']);
 
 // =========================================================================
 // 5. CÁC ROUTES CẦN ĐĂNG NHẬP (AUTH:SANCTUM)
@@ -87,6 +95,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/orders/checkout', [OrderController::class, 'checkout']);
     Route::post('/orders', [OrderController::class, 'checkout']);
     Route::post('/orders/{id}/cancel', [OrderController::class, 'cancel']);
+    Route::post('/payment/vnpay-create-url/{orderId}', [PaymentController::class, 'createVNPayUrl']);
 
     // --- Danh sách yêu thích (Wishlist) ---
     Route::get('/wishlist', [WishlistController::class, 'index']);
@@ -132,5 +141,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Upload hình ảnh
         Route::post('/upload', [UploadController::class, 'uploadImage']);
+
+        // Banner quảng cáo
+        Route::get('/admin/banners', [BannerController::class, 'adminIndex']);
+        Route::post('/admin/banners', [BannerController::class, 'store']);
+        Route::put('/admin/banners/{id}', [BannerController::class, 'update']);
+        Route::delete('/admin/banners/{id}', [BannerController::class, 'destroy']);
     });
 });
