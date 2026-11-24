@@ -41,6 +41,8 @@ class ReviewController extends Controller
             'rating'        => 'required|integer|min:1|max:5',
             'comment'       => 'nullable|string|max:1000',
             'order_item_id' => 'nullable|exists:order_items,id',
+            'images'        => 'nullable|array',
+            'images.*'      => 'string',
         ]);
 
         $review = DB::transaction(function () use ($validated, $product, $user) {
@@ -68,6 +70,7 @@ class ReviewController extends Controller
                 'order_item_id' => $orderItem?->id,
                 'rating'        => $validated['rating'],
                 'comment'       => $validated['comment'] ?? null,
+                'images'        => $validated['images'] ?? null,
                 'is_approved'   => true,
             ]);
         });

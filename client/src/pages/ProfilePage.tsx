@@ -4,6 +4,9 @@ import { Address, Coupon, Order, Product } from '../types';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { useProductStore } from '../store/useProductStore';
+import { toast } from '../store/useToastStore';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import OrderInvoiceModal from '../components/OrderInvoiceModal';
 
 type ProfileTab = 'info' | 'orders' | 'address' | 'vouchers' | 'wishlist' | 'password';
 
@@ -18,11 +21,13 @@ const emptyAddress: Omit<Address, 'id'> = {
 };
 
 export default function ProfilePage() {
+  useDocumentTitle('Tài khoản & Đơn hàng của tôi');
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = searchParams.get('tab') as ProfileTab | null;
   const { user, updateProfile, logout } = useAuthStore();
   const { setWishlist, toggleWishlist } = useProductStore();
+  const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<Order | null>(null);
   const [activeMenu, setActiveMenu] = useState<ProfileTab>(
     requestedTab && ['info', 'orders', 'address', 'vouchers', 'wishlist', 'password'].includes(requestedTab)
       ? requestedTab
@@ -134,6 +139,17 @@ export default function ProfilePage() {
       setSuccessMessage('Đã hủy đơn hàng.');
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Không thể hủy đơn hàng.');
+    }
+  };
+
+  const handlePayVNPay = async (order: Order) => {
+    try {
+      const url = await api.payment.createVNPayUrl(order.id);
+      if (url) {
+        window.location.href = url;
+      }
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Không thể chuyển đến cổng VNPay.');
     }
   };
 
@@ -327,11 +343,23 @@ export default function ProfilePage() {
                           <span className="small text-muted">
                             PTTT: <strong className="text-uppercase text-dark">{order.paymentMethod}</strong>
                           </span>
-                          <div className="d-flex align-items-center gap-3">
+                          <div className="d-flex align-items-center gap-2">
                             <div>
                               <span className="small text-muted me-1">Tổng tiền:</span>
                               <strong className="text-danger fs-6">{order.total.toLocaleString('vi-VN')}đ</strong>
                             </div>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-secondary"
+                              onClick={() => setSelectedInvoiceOrder(order)}
+                            >
+                              <i className="bi bi-printer me-1"></i> Hóa đơn
+                            </button>
+                            {order.paymentMethod === 'vnpay' && order.paymentStatus !== 'paid' && order.status !== 'cancelled' && (
+                              <button className="btn btn-sm btn-primary" onClick={() => void handlePayVNPay(order)}>
+                                <i className="bi bi-credit-card me-1"></i> Thanh toán VNPay
+                              </button>
+                            )}
                             {order.status === 'pending' && (
                               <button className="btn btn-sm btn-outline-danger" onClick={() => void handleCancelOrder(order)}>
                                 Hủy đơn
@@ -439,6 +467,9 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+
+      {/* Invoice Printable Modal */}
+      <OrderInvoiceModal order={selectedInvoiceOrder} onClose={() => setSelectedInvoiceOrder(null)} />
     </div>
   );
 }

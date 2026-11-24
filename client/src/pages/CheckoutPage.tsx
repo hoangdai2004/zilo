@@ -69,6 +69,12 @@ export default function CheckoutPage() {
       });
 
       removeItems(selectedItems.map((item) => item.id));
+
+      if (order.paymentUrl && form.paymentMethod === 'vnpay') {
+        window.location.href = order.paymentUrl;
+        return;
+      }
+
       setOrderSuccess(order.id);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Có lỗi xảy ra khi tạo đơn hàng.');
@@ -204,11 +210,11 @@ export default function CheckoutPage() {
                       type="radio"
                       name="payment"
                       checked={form.paymentMethod === 'vnpay'}
-                      disabled
+                      onChange={() => setForm({ ...form, paymentMethod: 'vnpay' })}
                     />
                     <div>
-                      <div className="fw-semibold">Cổng thanh toán VNPAY / Thẻ ATM / QR</div>
-                      <small className="text-muted">Chưa được cấu hình cổng thanh toán.</small>
+                      <div className="fw-semibold">Cổng thanh toán VNPay (ATM / QR Code / Thẻ ngân hàng)</div>
+                      <small className="text-muted">Hỗ trợ cổng thanh toán bảo mật VNPay Sandbox.</small>
                     </div>
                   </div>
                 </label>

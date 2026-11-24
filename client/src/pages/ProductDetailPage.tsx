@@ -5,6 +5,8 @@ import { useCartStore } from '../store/useCartStore';
 import { Product } from '../types';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
+import { toast } from '../store/useToastStore';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -13,6 +15,7 @@ export default function ProductDetailPage() {
   const { isAuthenticated } = useAuthStore();
 
   const product: Product | undefined = products.find((p) => String(p.id) === String(id));
+  useDocumentTitle(product ? product.name : undefined);
 
   const [isLoadingProduct, setIsLoadingProduct] = useState(!product);
   const [loadError, setLoadError] = useState('');
@@ -26,6 +29,8 @@ export default function ProductDetailPage() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [reviewsError, setReviewsError] = useState('');
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
+  const [reviewImages, setReviewImages] = useState<string[]>([]);
+  const [isUploadingReviewImage, setIsUploadingReviewImage] = useState(false);
   const [reviewSuccess, setReviewSuccess] = useState('');
 
   useEffect(() => {
@@ -98,10 +103,31 @@ export default function ProductDetailPage() {
         quantity,
         variantId: selectedVariant?.id,
       });
+      toast.success(`Đã thêm ${quantity}x "${product.name}" vào giỏ hàng!`, 'Giỏ hàng');
       setAddedToast(true);
       setTimeout(() => setAddedToast(false), 2500);
     } catch (error) {
       setAddError(error instanceof Error ? error.message : 'Không thể thêm sản phẩm vào giỏ.');
+    }
+  };
+
+  const handleUploadReviewImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (reviewImages.length >= 3) {
+      toast.warning('Bạn chỉ có thể đính kèm tối đa 3 ảnh.');
+      return;
+    }
+    setIsUploadingReviewImage(true);
+    try {
+      const url = await api.upload.image(file);
+      setReviewImages((prev) => [...prev, url]);
+      toast.success('Đã tải ảnh lên.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không thể tải ảnh lên.');
+    } finally {
+      setIsUploadingReviewImage(false);
+      e.target.value = '';
     }
   };
 
@@ -110,12 +136,17 @@ export default function ProductDetailPage() {
     setReviewsError('');
     setReviewSuccess('');
     try {
-      await api.reviews.create(product.id, reviewForm);
+      await api.reviews.create(product.id, {
+        ...reviewForm,
+        images: reviewImages,
+      });
       setReviews(await api.reviews.getAll(product.id));
       const refreshedProduct = await api.products.getById(product.id);
       if (refreshedProduct) setProduct(refreshedProduct);
       setReviewForm({ rating: 5, comment: '' });
+      setReviewImages([]);
       setReviewSuccess('Cảm ơn bạn đã gửi đánh giá.');
+      toast.success('Gửi đánh giá thành công!');
     } catch (error) {
       setReviewsError(error instanceof Error ? error.message : 'Không thể gửi đánh giá.');
     }
@@ -402,7 +433,21 @@ export default function ProductDetailPage() {
                   <div className="text-warning small mb-1" aria-label={`${review.rating} trên 5 sao`}>
                     {'★'.repeat(Number(review.rating))}
                   </div>
-                  <p className="text-secondary small mb-0">{review.comment || 'Không có nhận xét.'}</p>
+                  <p className="text-secondary small mb-2">{review.comment || 'Không có nhận xét.'}</p>
+                  {review.images && Array.isArray(review.images) && review.images.length > 0 && (
+                    <div className="d-flex flex-wrap gap-2 mt-2">
+                      {review.images.map((imgUrl: string, imgIdx: number) => (
+                        <a key={imgIdx} href={imgUrl} target="_blank" rel="noopener noreferrer">
+                          <img
+                            src={imgUrl}
+                            alt="Ảnh đánh giá"
+                            className="rounded-3 border object-fit-cover shadow-xs"
+                            style={{ width: '64px', height: '64px' }}
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
               {!reviews.length && !reviewsError && <p className="text-muted small mb-0">Sản phẩm chưa có đánh giá.</p>}
@@ -427,10 +472,52 @@ export default function ProductDetailPage() {
                   className="form-control mb-2"
                   rows={3}
                   maxLength={1000}
+                  placeholder="Chia sẻ trải nghiệm thực tế về sản phẩm..."
                   value={reviewForm.comment}
                   onChange={(event) => setReviewForm({ ...reviewForm, comment: event.target.value })}
                 />
-                <button className="btn btn-primary btn-sm" type="submit">Gửi đánh giá</button>
+
+                {/* Upload ảnh đánh giá thực tế */}
+                <div className="mb-3">
+                  <label className="form-label small d-block">Hình ảnh thực tế (tối đa 3 ảnh):</label>
+                  <div className="d-flex flex-wrap align-items-center gap-2">
+                    {reviewImages.map((img, idx) => (
+                      <div key={idx} className="position-relative">
+                        <img
+                          src={img}
+                          alt="Review preview"
+                          className="rounded-2 border object-fit-cover"
+                          style={{ width: '60px', height: '60px' }}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-danger btn-sm p-0 position-absolute top-0 end-0 rounded-circle"
+                          style={{ width: '18px', height: '18px', lineHeight: '14px', fontSize: '10px' }}
+                          onClick={() => setReviewImages((prev) => prev.filter((_, i) => i !== idx))}
+                        >
+                          &times;
+                        </button>
+                      </div>
+                    ))}
+                    {reviewImages.length < 3 && (
+                      <label className="btn btn-outline-secondary btn-sm d-flex flex-column align-items-center justify-content-center p-2 rounded-2 cursor-pointer mb-0" style={{ width: '60px', height: '60px' }}>
+                        <i className="bi bi-camera fs-5"></i>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="d-none"
+                          disabled={isUploadingReviewImage}
+                          onChange={handleUploadReviewImage}
+                        />
+                      </label>
+                    )}
+                    {isUploadingReviewImage && <span className="small text-muted">Đang tải ảnh lên...</span>}
+                  </div>
+                </div>
+
+                <button className="btn btn-primary btn-sm" type="submit" disabled={isUploadingReviewImage}>
+                  Gửi đánh giá
+                </button>
                 {reviewSuccess && <span className="text-success small ms-3">{reviewSuccess}</span>}
               </form>
             ) : (

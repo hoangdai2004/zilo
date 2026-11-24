@@ -339,11 +339,21 @@ class OrderController extends Controller
                 }
             }
 
+            $paymentUrl = null;
+            if ($paymentMethod === 'vnpay') {
+                try {
+                    $paymentUrl = app(\App\Services\VNPayService::class)->createPaymentUrl($order, request()->ip());
+                } catch (\Throwable $e) {
+                    \Log::error('VNPay URL error: ' . $e->getMessage());
+                }
+            }
+
             return response()->json([
-                'status'  => 'success',
-                'message' => 'Đặt hàng thành công.',
-                'id'      => $order->order_number, // Khớp với CheckoutPage FE: setOrderSuccess(order.id)
-                'data'    => $order->load(['items.product', 'items.variant', 'payments']),
+                'status'      => 'success',
+                'message'     => 'Đặt hàng thành công.',
+                'id'          => $order->order_number, // Khớp với CheckoutPage FE: setOrderSuccess(order.id)
+                'payment_url' => $paymentUrl,
+                'data'        => $order->load(['items.product', 'items.variant', 'payments']),
             ], 201);
         });
     }

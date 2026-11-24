@@ -118,5 +118,28 @@ export interface Order {
   shippingFee?: number;
   total: number;
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  paymentUrl?: string;
   createdAt: string;
 }
+
+export interface Review {
+  id: string | number;
+  userId: string | number;
+  userName: string;
+  rating: number;
+  comment?: string;
+  images?: string[];
+  createdAt: string;
+}
+
+export interface Banner {
+  id: string | number;
+  title: string;
+  imageUrl: string;
+  linkUrl?: string;
+  description?: string;
+  order: number;
+  isActive: boolean;
+  createdAt?: string;
+}
+

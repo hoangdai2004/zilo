@@ -14,6 +14,7 @@ export default function AdminLayout() {
     { title: 'Danh mục', icon: 'bi-grid', path: '/admin/categories' },
     { title: 'Thương hiệu', icon: 'bi-tags', path: '/admin/brands' },
     { title: 'Mã giảm giá', icon: 'bi-tag', path: '/admin/coupons' },
+    { title: 'Banner quảng cáo', icon: 'bi-image', path: '/admin/banners' },
   ];
 
   return (
@@ -22,7 +23,7 @@ export default function AdminLayout() {
       <aside className="admin-sidebar d-flex flex-column flex-shrink-0 p-3" style={{ width: '260px' }}>
         <Link to="/admin" className="d-flex align-items-center mb-4 text-white text-decoration-none px-2 gap-2">
           <i className="bi bi-bag-check-fill text-primary fs-3"></i>
-          <span className="fs-5 fw-bold">ShopHub Admin</span>
+          <span className="fs-5 fw-bold">Zilo Admin</span>
         </Link>
         <hr className="text-secondary my-2" />
         <ul className="nav nav-pills flex-column mb-auto gap-1">
@@ -52,7 +53,7 @@ export default function AdminLayout() {
       <div className="flex-grow-1 d-flex flex-column overflow-hidden">
         {/* Top bar */}
         <header className="bg-white border-bottom px-4 py-3 d-flex align-items-center justify-content-between shadow-sm">
-          <h5 className="mb-0 fw-bold text-dark">Hệ thống quản trị ShopHub</h5>
+          <h5 className="mb-0 fw-bold text-dark">Hệ thống quản trị Zilo</h5>
           <div className="d-flex align-items-center gap-3">
             <div className="d-flex align-items-center gap-2">
               <img

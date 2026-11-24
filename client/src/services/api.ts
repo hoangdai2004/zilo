@@ -1,5 +1,5 @@
 import axios, { AxiosRequestConfig } from 'axios';
-import { Address, Brand, CartItem, Category, Coupon, Order, Product, ProductVariant, User } from '../types';
+import { Address, Banner, Brand, CartItem, Category, Coupon, Order, Product, ProductVariant, Review, User } from '../types';
 
 export const API_BASE_URL = import.meta.env.VITE_API_URL
   || import.meta.env.REACT_APP_API_URL
@@ -200,6 +200,17 @@ export const mapBackendUser = (user: any): User => ({
   createdAt: user.created_at,
 });
 
+export const mapBackendBanner = (banner: any): Banner => ({
+  id: banner.id,
+  title: banner.title,
+  imageUrl: banner.image_url,
+  linkUrl: banner.link_url,
+  description: banner.description,
+  order: Number(banner.order || 0),
+  isActive: Boolean(banner.is_active),
+  createdAt: banner.created_at,
+});
+
 const mapBackendAddress = (address: any): Address => ({
   id: address.id,
   recipientName: address.recipient_name,
@@ -265,6 +276,7 @@ const mapBackendOrder = (order: any): Order => ({
   total: Number(order.total_amount),
   status: order.status,
   paymentStatus: order.payment_status || order.latest_payment?.status || order.payments?.[0]?.status,
+  paymentUrl: order.payment_url,
   createdAt: order.created_at,
 });
 
@@ -595,7 +607,11 @@ export const api = {
           })),
         }),
       }, true);
-      return mapBackendOrder(payload.data);
+      const mapped = mapBackendOrder(payload.data);
+      if (payload.payment_url) {
+        mapped.paymentUrl = payload.payment_url;
+      }
+      return mapped;
     },
     cancel: async (order: Order): Promise<void> => {
       if (order.resourceId === undefined) throw new Error('Thiếu mã định danh của đơn hàng.');
@@ -646,12 +662,53 @@ export const api = {
       const payload = await request<any>(`/products/${productId}/reviews`);
       return listFrom(payload);
     },
-    create: async (productId: string | number, review: { rating: number; comment: string }): Promise<any> => {
+    create: async (productId: string | number, review: { rating: number; comment: string; images?: string[] }): Promise<any> => {
       const payload: any = await request(`/products/${productId}/reviews`, {
         method: 'POST',
         body: JSON.stringify(review),
       }, true);
       return payload.data;
+    },
+  },
+  banners: {
+    getAll: async (): Promise<Banner[]> => {
+      const payload = await request<any>('/banners');
+      return listFrom(payload).map(mapBackendBanner);
+    },
+    getAllForAdmin: async (): Promise<Banner[]> => {
+      const payload = await request<any>('/admin/banners', {}, true);
+      return listFrom(payload).map(mapBackendBanner);
+    },
+    create: async (banner: Partial<Banner>): Promise<Banner> => {
+      const payload: any = await request('/admin/banners', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: banner.title,
+          image_url: banner.imageUrl,
+          link_url: banner.linkUrl,
+          description: banner.description,
+          order: banner.order,
+          is_active: banner.isActive,
+        }),
+      }, true);
+      return mapBackendBanner(payload.data);
+    },
+    update: async (id: string | number, banner: Partial<Banner>): Promise<Banner> => {
+      const payload: any = await request(`/admin/banners/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          title: banner.title,
+          image_url: banner.imageUrl,
+          link_url: banner.linkUrl,
+          description: banner.description,
+          order: banner.order,
+          is_active: banner.isActive,
+        }),
+      }, true);
+      return mapBackendBanner(payload.data);
+    },
+    delete: async (id: string | number): Promise<void> => {
+      await request(`/admin/banners/${id}`, { method: 'DELETE' }, true);
     },
   },
   admin: {
@@ -712,6 +769,17 @@ export const api = {
         },
       });
       return res.data.data.url;
+    },
+  },
+  payment: {
+    createVNPayUrl: async (orderId: string | number): Promise<string> => {
+      const payload: any = await request(`/payment/vnpay-create-url/${orderId}`, {
+        method: 'POST',
+      }, true);
+      return payload.payment_url;
+    },
+    verifyVNPayReturn: async (queryString: string): Promise<any> => {
+      return await request(`/payment/vnpay-return${queryString}`);
     },
   },
 };
